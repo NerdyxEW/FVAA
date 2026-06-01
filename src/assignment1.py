@@ -4,24 +4,28 @@ import time
 
 def getDistance(pointData, distMethod, pVal):
     total = 0
-    if distMethod == '1': p = 2     # euclidean (power of 2)
-    elif distMethod == '2': p = 1   # manhattan (power of 1)
-    else: p = pVal                     # minkowski (custom pwr)
-
     for i in range(len(pointData[0])):
-        total += abs(pointData[0][i] - pointData[1][i]) ** p
-        
-    return total ** (1 / p)
+        total += abs(pointData[0][i] - pointData[1][i]) ** pVal
+    return total ** (1 / pVal)
 
 def getArffData(filename):
     features,labels = [],[]
+    data = False
     with open(filename, 'r') as file:
         for line in file:
-            if line.startswith('@data') or line.startswith('@data'): break
-            elif line.startswith('@attribute'): features.append(line.split(' ')[1])
+            line = line.strip().lower()
+            if not line or line.startswith('@'): continue
+            if line.startswith('@data'): data = True continue
+            elif line.startswith('@attribute'): continue
+            if data:
+                p = line.split(',')
+                features.append([float(v) for v in p[:-1]])
+                labels.append(p[-1].strip())
     return features,labels
 
-features,labels = getArffData(sys.argv[0])
+if len(sys.argv) < 2: sys.exit(1)
+features,labels = getArffData(sys.argv[1])
+
 testPoint = [2.1, 3.2, 4.3, 5.4]
 trainPoint = [4.2, 6.4, 8.6, 10.8]
 
@@ -42,11 +46,9 @@ while True:
     except ValueError: kVal = 1
 
     matrix = {actual: {pred: 0 for pred in labels} for actual in labels} # unfinished
-
-    
     
     startTime = time.time()
-    print(f"distance: {getDistance([testPoint, trainPoint], choice, pVal)}")
+    print(f"distance: {getDistance([testPoint, trainPoint], choice, pVal if choice == '3' else int(choice))}")
 
     endTime = time.time()
     print(f"operation time: {endTime - startTime} seconds")
