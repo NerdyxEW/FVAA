@@ -1,5 +1,6 @@
 import math
 import sys
+import time
 
 def getDistance(pointData, distMethod, pVal):
     total = 0
@@ -16,13 +17,8 @@ def getArffData(filename):
     features,labels = [],[]
     with open(filename, 'r') as file:
         for line in file:
-            if line.startswith('@data'):
-                break
-            elif line.startswith('@attribute'):
-                feature = line.split(' ')[1]
-                features.append(feature)
-            elif line.startswith('@data'):
-                break
+            if line.startswith('@data') or line.startswith('@data'): break
+            elif line.startswith('@attribute'): features.append(line.split(' ')[1])
     return features,labels
 
 features,labels = getArffData(sys.argv[0])
@@ -37,10 +33,20 @@ while True:
         continue
     pVal = 2.0
     if choice == '3':
-        try:
-            pVal = float(input("Enter a value for p: "))
+        try: pVal = float(input("Enter a value for p: "))
         except ValueError:
             print("Invalid number! Using p = 3.")
             pVal = 3.0
-    result = getDistance([testPoint, trainPoint], choice, pVal)
+    
+    try: kVal = int(input("Enter a value for k: ")) # unfinished
+    except ValueError: kVal = 1
+
+    matrix = {actual: {pred: 0 for pred in labels} for actual in labels} # unfinished
+
+    
+    
+    startTime = time.time()
     print(f"distance: {getDistance([testPoint, trainPoint], choice, pVal)}")
+
+    endTime = time.time()
+    print(f"operation time: {endTime - startTime} seconds")
