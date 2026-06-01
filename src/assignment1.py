@@ -25,14 +25,14 @@ def getArffData(filename):
                 break
     return features,labels
 
-features,labels = getArffData(sys.argv[1])
+features,labels = getArffData(sys.argv[0])
 testPoint = [2.1, 3.2, 4.3, 5.4]
 trainPoint = [4.2, 6.4, 8.6, 10.8]
 
 while True:
     print("\nChoose a distance method:\n[1] Euclidean\n[2] Manhattan\n[3] Minkowski")
     choice = input("Enter your choice: ")
-        if choice not in ['1', '2', '3']:
+    if choice not in ['1', '2', '3']:
         print("Fake number, retry!\n")
         continue
     pVal = 2.0
