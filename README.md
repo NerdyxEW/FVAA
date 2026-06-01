@@ -1,6 +1,1 @@
-Programming Assignment 1
-========================
-
-Starter workspace.
-
-- Your blank file is `src/assignment1.py`.
+[Programming Assignment 1] Implement kNN Supervised Learning Algorithm in Python (Static Data)
