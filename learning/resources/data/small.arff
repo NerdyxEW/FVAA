@@ -1,0 +1,18 @@
+@relation small
+
+@attribute x1 numeric
+@attribute x2 numeric
+@attribute x3 numeric
+@attribute x4 numeric
+@attribute class {iris-setosa,iris-versicolor,iris-virginica}
+
+@data
+5.1,3.5,1.4,0.2,iris-setosa
+4.9,3.0,1.4,0.2,iris-setosa
+5.0,3.2,1.5,0.3,iris-setosa
+7.0,3.2,4.7,1.4,iris-versicolor
+6.4,3.2,4.5,1.5,iris-versicolor
+6.9,3.1,4.9,1.5,iris-versicolor
+6.3,3.3,6.0,2.5,iris-virginica
+5.8,2.7,5.1,1.9,iris-virginica
+7.1,3.0,5.9,2.1,iris-virginica
