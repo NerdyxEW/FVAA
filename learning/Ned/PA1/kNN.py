@@ -34,7 +34,7 @@ def predictLabel(kNearest, trainLabels):
 def getUniqueClasses(labels):
     return sorted(set(labels))
 
-def buildConfusionMatrix(predictions, classes): # used some help from AI for the matrix things as I was confused on how to do it properly
+def buildConfusionMatrix(predictions, classes):
     matrix = {actual: {pred: 0 for pred in classes} for actual in classes}
     for actual, predicted, _ in predictions:
         matrix[actual][predicted] += 1
@@ -48,6 +48,28 @@ def formatConfusionMatrix(matrix, classes):
     for actual in classes:
         row = actual.ljust(labelWidth) + '  ' + '  '.join(str(matrix[actual][pred]).rjust(colWidth) for pred in classes)
         lines.append(row)
+    return '\n'.join(lines)
+
+def formatMetrics(matrix, classes):
+    def div(n, d): return n / d if d else 0.0
+
+    total = sum(matrix[a][p] for a in classes for p in classes)
+    correct = sum(matrix[c][c] for c in classes)
+    lines = [f"accuracy: {correct}/{total} ({div(correct, total):.4f})", "per-class metrics:"]
+    precisions, recalls, f1s = [], [], []
+    for c in classes:
+        tp = matrix[c][c]
+        fp = sum(matrix[a][c] for a in classes) - tp
+        fn = sum(matrix[c][p] for p in classes) - tp
+        p, r = div(tp, tp + fp), div(tp, tp + fn)
+        f = div(2 * p * r, p + r)
+        precisions.append(p); recalls.append(r); f1s.append(f)
+        lines.append(f"  {c}: precision={p:.4f}, recall={r:.4f}, f1={f:.4f}")
+    n = len(classes) or 1
+    lines.append(
+        f"macro avg: precision={sum(precisions) / n:.4f}, "
+        f"recall={sum(recalls) / n:.4f}, f1={sum(f1s) / n:.4f}"
+    )
     return '\n'.join(lines)
 
 def runLeaveOneOut(features, labels, k, distFunc):
@@ -137,13 +159,13 @@ endTime = time.time()
 classes = getUniqueClasses(labels)
 confusionMatrix = buildConfusionMatrix(predictions, classes)
 
-correct = sum(1 for actual, predicted, _ in predictions if actual == predicted)
 print(f"\nleave-one-out results ({len(predictions)} points):")
 for i, (actual, predicted, votes) in enumerate(predictions):
     match = "ok" if actual == predicted else "miss"
     voteStr = ", ".join(f"{label}={count}" for label, count in sorted(votes.items()))
     print(f"  row {i}: actual={actual}, predicted={predicted}, votes=[{voteStr}] [{match}]")
-print(f"\ncorrect: {correct}/{len(predictions)}")
 print(f"\nconfusion matrix (rows=actual, columns=predicted):")
 print(formatConfusionMatrix(confusionMatrix, classes))
+print(f"\ncompiled metrics:")
+print(formatMetrics(confusionMatrix, classes))
 print(f"\noperation time: {endTime - startTime:.6f} seconds")
