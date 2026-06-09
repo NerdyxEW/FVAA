@@ -14,18 +14,22 @@ def getAllDistances(testPoint, features, distFunc): return [(distFunc(testPoint,
 
 def getKNearest(distances, k): return sorted(distances, key=lambda d: d[0])[:k]
 
-def predictLabel(kNearest, trainLabels):
+def getNeighborVotes(kNearest, trainLabels):
     votes = {}
     for _, idx in kNearest:
         label = trainLabels[idx]
         votes[label] = votes.get(label, 0) + 1
+    return votes
+
+def predictLabel(kNearest, trainLabels):
+    votes = getNeighborVotes(kNearest, trainLabels)
     maxVotes = max(votes.values())
     tied = [label for label, count in votes.items() if count == maxVotes]
     if len(tied) == 1:
-        return tied[0]
+        return tied[0], votes
     for _, idx in kNearest:
         if trainLabels[idx] in tied:
-            return trainLabels[idx]
+            return trainLabels[idx], votes
 
 def runLeaveOneOut(features, labels, k, distFunc):
     predictions = []
@@ -37,8 +41,8 @@ def runLeaveOneOut(features, labels, k, distFunc):
         effectiveK = min(k, len(trainFeatures))
         allDistances = getAllDistances(testPoint, trainFeatures, distFunc)
         kNearest = getKNearest(allDistances, effectiveK)
-        predicted = predictLabel(kNearest, trainLabels)
-        predictions.append((actual, predicted))
+        predicted, votes = predictLabel(kNearest, trainLabels)
+        predictions.append((actual, predicted, votes))
     return predictions
 
 def getArffData(filename):
@@ -111,10 +115,11 @@ startTime = time.time()
 predictions = runLeaveOneOut(features, labels, kVal, distFunc)
 endTime = time.time()
 
-correct = sum(1 for actual, predicted in predictions if actual == predicted)
+correct = sum(1 for actual, predicted, _ in predictions if actual == predicted)
 print(f"\nleave-one-out results ({len(predictions)} points):")
-for i, (actual, predicted) in enumerate(predictions):
+for i, (actual, predicted, votes) in enumerate(predictions):
     match = "ok" if actual == predicted else "miss"
-    print(f"  row {i}: actual={actual}, predicted={predicted} [{match}]")
+    voteStr = ", ".join(f"{label}={count}" for label, count in sorted(votes.items()))
+    print(f"  row {i}: actual={actual}, predicted={predicted}, votes=[{voteStr}] [{match}]")
 print(f"\ncorrect: {correct}/{len(predictions)}")
 print(f"operation time: {endTime - startTime:.6f} seconds")
