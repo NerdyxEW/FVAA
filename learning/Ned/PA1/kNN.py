@@ -14,6 +14,33 @@ def getAllDistances(testPoint, features, distFunc): return [(distFunc(testPoint,
 
 def getKNearest(distances, k): return sorted(distances, key=lambda d: d[0])[:k]
 
+def predictLabel(kNearest, trainLabels):
+    votes = {}
+    for _, idx in kNearest:
+        label = trainLabels[idx]
+        votes[label] = votes.get(label, 0) + 1
+    maxVotes = max(votes.values())
+    tied = [label for label, count in votes.items() if count == maxVotes]
+    if len(tied) == 1:
+        return tied[0]
+    for _, idx in kNearest:
+        if trainLabels[idx] in tied:
+            return trainLabels[idx]
+
+def runLeaveOneOut(features, labels, k, distFunc):
+    predictions = []
+    for i in range(len(features)):
+        testPoint = features[i]
+        actual = labels[i]
+        trainFeatures = [features[j] for j in range(len(features)) if j != i]
+        trainLabels = [labels[j] for j in range(len(labels)) if j != i]
+        effectiveK = min(k, len(trainFeatures))
+        allDistances = getAllDistances(testPoint, trainFeatures, distFunc)
+        kNearest = getKNearest(allDistances, effectiveK)
+        predicted = predictLabel(kNearest, trainLabels)
+        predictions.append((actual, predicted))
+    return predictions
+
 def getArffData(filename):
     features,labels = [],[]
     data = False
@@ -80,23 +107,14 @@ print(f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exp
 
 features,labels = getArffData(arffPath)
 
-testPoint = [2.1, 3.2, 4.3, 5.4]
-
-matrix = {actual: {pred: 0 for pred in labels} for actual in labels} # unfinished
-
 startTime = time.time()
-
-allDistances = getAllDistances(testPoint, features, distFunc)
-kNearest = getKNearest(allDistances, kVal)
-
-print(f"\ntest point: {testPoint}")
-print(f"all distances ({len(allDistances)} points):")
-for dist, idx in sorted(allDistances, key=lambda d: d[0]):
-    print(f"  idx {idx}: distance={dist:.4f}, label={labels[idx]}, features={features[idx]}")
-
-print(f"\nclosest {kVal} neighbor(s):")
-for dist, idx in kNearest:
-    print(f"  idx {idx}: distance={dist:.4f}, label={labels[idx]}, features={features[idx]}")
-
+predictions = runLeaveOneOut(features, labels, kVal, distFunc)
 endTime = time.time()
-print(f"\noperation time: {endTime - startTime:.6f} seconds")
+
+correct = sum(1 for actual, predicted in predictions if actual == predicted)
+print(f"\nleave-one-out results ({len(predictions)} points):")
+for i, (actual, predicted) in enumerate(predictions):
+    match = "ok" if actual == predicted else "miss"
+    print(f"  row {i}: actual={actual}, predicted={predicted} [{match}]")
+print(f"\ncorrect: {correct}/{len(predictions)}")
+print(f"operation time: {endTime - startTime:.6f} seconds")
