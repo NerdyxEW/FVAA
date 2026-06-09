@@ -4,7 +4,6 @@ import math
 import sys
 import time
 
-
 def euclideanDistance(a, b): return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(len(a))))
 
 def manhattanDistance(a, b): return sum(abs(a[i] - b[i]) for i in range(len(a)))
@@ -14,7 +13,6 @@ def minkowskiDistance(a, b, p): return sum(abs(a[i] - b[i]) ** p for i in range(
 def getAllDistances(testPoint, features, distFunc): return [(distFunc(testPoint, feature), idx) for idx, feature in enumerate(features)]
 
 def getKNearest(distances, k): return sorted(distances, key=lambda d: d[0])[:k]
-
 
 def getArffData(filename):
     features,labels = [],[]
@@ -31,14 +29,12 @@ def getArffData(filename):
                 labels.append(p[-1].strip())
     return features,labels
 
-
 def printUsage():
     print("command: python3 kNN.py <arff_file> --distance <1 or 2 or 3> --k <int> [--p <float>]")
     print("  <arff_file>  : path to training data in ARFF format")
     print("  --distance   : distance metric (1=euclidean, 2=manhattan, 3=minkowski)")
     print("  --k          : number of nearest neighbors to select")
     print("  --p          : minkowski exponent (only used when --distance 3; default 3.0)")
-
 
 if len(sys.argv) < 6:
     printUsage()
