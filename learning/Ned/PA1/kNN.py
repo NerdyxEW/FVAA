@@ -31,8 +31,7 @@ def predictLabel(kNearest, trainLabels):
         if trainLabels[idx] in tied:
             return trainLabels[idx], votes
 
-def getUniqueClasses(labels):
-    return sorted(set(labels))
+def getUniqueClasses(labels): return sorted(set(labels))
 
 def buildConfusionMatrix(predictions, classes):
     matrix = {actual: {pred: 0 for pred in classes} for actual in classes}
@@ -65,10 +64,6 @@ def buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix
         "compiled metrics:",
         formatMetrics(matrix, classes),
     ])
-
-def writeResultsFile(path, report):
-    with open(path, 'w') as file:
-        file.write(report + '\n')
 
 def formatMetrics(matrix, classes):
     def div(n, d): return n / d if d else 0.0
@@ -179,7 +174,8 @@ classes = getUniqueClasses(labels)
 confusionMatrix = buildConfusionMatrix(predictions, classes)
 elapsed = endTime - startTime
 resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
-writeResultsFile(outputPath, resultsReport)
+
+with open(outputPath, 'w') as file: file.write(resultsReport + '\n')
 
 print(resultsReport)
 print(f"\nresults written to: {outputPath}")
