@@ -1,8 +1,8 @@
-arff file: ../../resources/data/small.arff
-distance metric: manhattan (2)
+arff file: c:\Users\nedwa\OneDrive\Desktop\FVAA\learning\resources\data\small.arff
+distance metric: minkowski (3)
 k (nearest neighbors): 3
-p (minkowski exponent): n/a (not used for manhattan)
-operation time: 0.000999 seconds
+p (minkowski exponent): 4.0
+operation time: 0.000000 seconds
 
 confusion matrix (rows=actual, columns=predicted):
                      iris-setosa  iris-versicolor   iris-virginica

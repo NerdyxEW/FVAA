@@ -36,7 +36,7 @@ def getUniqueClasses(labels):
 
 def buildConfusionMatrix(predictions, classes):
     matrix = {actual: {pred: 0 for pred in classes} for actual in classes}
-    for actual, predicted, _ in predictions:
+    for actual, predicted in predictions:
         matrix[actual][predicted] += 1
     return matrix
 
@@ -102,8 +102,8 @@ def runLeaveOneOut(features, labels, k, distFunc):
         effectiveK = min(k, len(trainFeatures))
         allDistances = getAllDistances(testPoint, trainFeatures, distFunc)
         kNearest = getKNearest(allDistances, effectiveK)
-        predicted, votes = predictLabel(kNearest, trainLabels)
-        predictions.append((actual, predicted, votes))
+        predicted, _ = predictLabel(kNearest, trainLabels)
+        predictions.append((actual, predicted))
     return predictions
 
 def getArffData(filename):
@@ -169,11 +169,6 @@ distFunc = (
     else lambda a, b: minkowskiDistance(a, b, pVal)
 )
 
-print(f"arff file: {arffPath}")
-print(f"distance metric: {distName} ({distFlag})")
-print(f"k (nearest neighbors): {kVal}")
-print(f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})")
-
 features,labels = getArffData(arffPath)
 
 startTime = time.time()
@@ -186,14 +181,5 @@ elapsed = endTime - startTime
 resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
 writeResultsFile(outputPath, resultsReport)
 
-print(f"\nleave-one-out results ({len(predictions)} points):")
-for i, (actual, predicted, votes) in enumerate(predictions):
-    match = "ok" if actual == predicted else "miss"
-    voteStr = ", ".join(f"{label}={count}" for label, count in sorted(votes.items()))
-    print(f"  row {i}: actual={actual}, predicted={predicted}, votes=[{voteStr}] [{match}]")
-print(f"\nconfusion matrix (rows=actual, columns=predicted):")
-print(formatConfusionMatrix(confusionMatrix, classes))
-print(f"\ncompiled metrics:")
-print(formatMetrics(confusionMatrix, classes))
-print(f"\noperation time: {elapsed:.6f} seconds")
-print(f"results written to: {outputPath}")
+print(resultsReport)
+print(f"\nresults written to: {outputPath}")
