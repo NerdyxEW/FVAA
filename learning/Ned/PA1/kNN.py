@@ -31,6 +31,25 @@ def predictLabel(kNearest, trainLabels):
         if trainLabels[idx] in tied:
             return trainLabels[idx], votes
 
+def getUniqueClasses(labels):
+    return sorted(set(labels))
+
+def buildConfusionMatrix(predictions, classes): # used some help from AI for the matrix things as I was confused on how to do it properly
+    matrix = {actual: {pred: 0 for pred in classes} for actual in classes}
+    for actual, predicted, _ in predictions:
+        matrix[actual][predicted] += 1
+    return matrix
+
+def formatConfusionMatrix(matrix, classes):
+    labelWidth = max(len(c) for c in classes + ['actual \\ pred'])
+    colWidth = max(6, max(len(c) for c in classes))
+    header = ' ' * (labelWidth + 2) + '  '.join(c.rjust(colWidth) for c in classes)
+    lines = [header]
+    for actual in classes:
+        row = actual.ljust(labelWidth) + '  ' + '  '.join(str(matrix[actual][pred]).rjust(colWidth) for pred in classes)
+        lines.append(row)
+    return '\n'.join(lines)
+
 def runLeaveOneOut(features, labels, k, distFunc):
     predictions = []
     for i in range(len(features)):
@@ -115,6 +134,9 @@ startTime = time.time()
 predictions = runLeaveOneOut(features, labels, kVal, distFunc)
 endTime = time.time()
 
+classes = getUniqueClasses(labels)
+confusionMatrix = buildConfusionMatrix(predictions, classes)
+
 correct = sum(1 for actual, predicted, _ in predictions if actual == predicted)
 print(f"\nleave-one-out results ({len(predictions)} points):")
 for i, (actual, predicted, votes) in enumerate(predictions):
@@ -122,4 +144,6 @@ for i, (actual, predicted, votes) in enumerate(predictions):
     voteStr = ", ".join(f"{label}={count}" for label, count in sorted(votes.items()))
     print(f"  row {i}: actual={actual}, predicted={predicted}, votes=[{voteStr}] [{match}]")
 print(f"\ncorrect: {correct}/{len(predictions)}")
-print(f"operation time: {endTime - startTime:.6f} seconds")
+print(f"\nconfusion matrix (rows=actual, columns=predicted):")
+print(formatConfusionMatrix(confusionMatrix, classes))
+print(f"\noperation time: {endTime - startTime:.6f} seconds")
