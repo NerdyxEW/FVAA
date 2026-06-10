@@ -50,6 +50,26 @@ def formatConfusionMatrix(matrix, classes):
         lines.append(row)
     return '\n'.join(lines)
 
+def buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix, classes):
+    pLine = f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})"
+    return '\n'.join([
+        f"arff file: {arffPath}",
+        f"distance metric: {distName} ({distFlag})",
+        f"k (nearest neighbors): {kVal}",
+        pLine,
+        f"operation time: {elapsed:.6f} seconds",
+        "",
+        "confusion matrix (rows=actual, columns=predicted):",
+        formatConfusionMatrix(matrix, classes),
+        "",
+        "compiled metrics:",
+        formatMetrics(matrix, classes),
+    ])
+
+def writeResultsFile(path, report):
+    with open(path, 'w') as file:
+        file.write(report + '\n')
+
 def formatMetrics(matrix, classes):
     def div(n, d): return n / d if d else 0.0
 
@@ -107,12 +127,13 @@ def printUsage():
     print("  --distance   : distance metric (1=euclidean, 2=manhattan, 3=minkowski)")
     print("  --k          : number of nearest neighbors to select")
     print("  --p          : minkowski exponent (only used when --distance 3; default 3.0)")
+    print("  --output     : results file path (default: knn_results.txt)")
 
 if len(sys.argv) < 6:
     printUsage()
     sys.exit(1)
 
-arffPath, distFlag, kVal, pVal = sys.argv[1], None, None, 3.0
+arffPath, distFlag, kVal, pVal, outputPath = sys.argv[1], None, None, 3.0, 'knn_results.txt'
 i = 2
 while i < len(sys.argv):
     if sys.argv[i] == '--distance' and i + 1 < len(sys.argv):
@@ -126,6 +147,9 @@ while i < len(sys.argv):
     elif sys.argv[i] == '--p' and i + 1 < len(sys.argv):
         try: pVal = float(sys.argv[i + 1])
         except ValueError: pVal = 3.0
+        i += 2
+    elif sys.argv[i] == '--output' and i + 1 < len(sys.argv):
+        outputPath = sys.argv[i + 1]
         i += 2
     else:
         print(f"error, unknown or incomplete argument: {sys.argv[i]}")
@@ -158,6 +182,9 @@ endTime = time.time()
 
 classes = getUniqueClasses(labels)
 confusionMatrix = buildConfusionMatrix(predictions, classes)
+elapsed = endTime - startTime
+resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
+writeResultsFile(outputPath, resultsReport)
 
 print(f"\nleave-one-out results ({len(predictions)} points):")
 for i, (actual, predicted, votes) in enumerate(predictions):
@@ -168,4 +195,5 @@ print(f"\nconfusion matrix (rows=actual, columns=predicted):")
 print(formatConfusionMatrix(confusionMatrix, classes))
 print(f"\ncompiled metrics:")
 print(formatMetrics(confusionMatrix, classes))
-print(f"\noperation time: {endTime - startTime:.6f} seconds")
+print(f"\noperation time: {elapsed:.6f} seconds")
+print(f"results written to: {outputPath}")
