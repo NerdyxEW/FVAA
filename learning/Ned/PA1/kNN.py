@@ -14,6 +14,98 @@ def getAllDistances(testPoint, features, distFunc): return [(distFunc(testPoint,
 
 def getKNearest(distances, k): return sorted(distances, key=lambda d: d[0])[:k]
 
+def getNeighborVotes(kNearest, trainLabels):
+    votes = {}
+    for _, idx in kNearest:
+        label = trainLabels[idx]
+        votes[label] = votes.get(label, 0) + 1
+    return votes
+
+def predictLabel(kNearest, trainLabels):
+    votes = getNeighborVotes(kNearest, trainLabels)
+    maxVotes = max(votes.values())
+    tied = [label for label, count in votes.items() if count == maxVotes]
+    if len(tied) == 1:
+        return tied[0], votes
+    for _, idx in kNearest:
+        if trainLabels[idx] in tied:
+            return trainLabels[idx], votes
+
+def getUniqueClasses(labels):
+    return sorted(set(labels))
+
+def buildConfusionMatrix(predictions, classes):
+    matrix = {actual: {pred: 0 for pred in classes} for actual in classes}
+    for actual, predicted in predictions:
+        matrix[actual][predicted] += 1
+    return matrix
+
+def formatConfusionMatrix(matrix, classes):
+    labelWidth = max(len(c) for c in classes + ['actual \\ pred'])
+    colWidth = max(6, max(len(c) for c in classes))
+    header = ' ' * (labelWidth + 2) + '  '.join(c.rjust(colWidth) for c in classes)
+    lines = [header]
+    for actual in classes:
+        row = actual.ljust(labelWidth) + '  ' + '  '.join(str(matrix[actual][pred]).rjust(colWidth) for pred in classes)
+        lines.append(row)
+    return '\n'.join(lines)
+
+def buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix, classes):
+    pLine = f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})"
+    return '\n'.join([
+        f"arff file: {arffPath}",
+        f"distance metric: {distName} ({distFlag})",
+        f"k (nearest neighbors): {kVal}",
+        pLine,
+        f"operation time: {elapsed:.6f} seconds",
+        "",
+        "confusion matrix (rows=actual, columns=predicted):",
+        formatConfusionMatrix(matrix, classes),
+        "",
+        "compiled metrics:",
+        formatMetrics(matrix, classes),
+    ])
+
+def writeResultsFile(path, report):
+    with open(path, 'w') as file:
+        file.write(report + '\n')
+
+def formatMetrics(matrix, classes):
+    def div(n, d): return n / d if d else 0.0
+
+    total = sum(matrix[a][p] for a in classes for p in classes)
+    correct = sum(matrix[c][c] for c in classes)
+    lines = [f"accuracy: {correct}/{total} ({div(correct, total):.4f})", "per-class metrics:"]
+    precisions, recalls, f1s = [], [], []
+    for c in classes:
+        tp = matrix[c][c]
+        fp = sum(matrix[a][c] for a in classes) - tp
+        fn = sum(matrix[c][p] for p in classes) - tp
+        p, r = div(tp, tp + fp), div(tp, tp + fn)
+        f = div(2 * p * r, p + r)
+        precisions.append(p); recalls.append(r); f1s.append(f)
+        lines.append(f"  {c}: precision={p:.4f}, recall={r:.4f}, f1={f:.4f}")
+    n = len(classes) or 1
+    lines.append(
+        f"macro avg: precision={sum(precisions) / n:.4f}, "
+        f"recall={sum(recalls) / n:.4f}, f1={sum(f1s) / n:.4f}"
+    )
+    return '\n'.join(lines)
+
+def runLeaveOneOut(features, labels, k, distFunc):
+    predictions = []
+    for i in range(len(features)):
+        testPoint = features[i]
+        actual = labels[i]
+        trainFeatures = [features[j] for j in range(len(features)) if j != i]
+        trainLabels = [labels[j] for j in range(len(labels)) if j != i]
+        effectiveK = min(k, len(trainFeatures))
+        allDistances = getAllDistances(testPoint, trainFeatures, distFunc)
+        kNearest = getKNearest(allDistances, effectiveK)
+        predicted, _ = predictLabel(kNearest, trainLabels)
+        predictions.append((actual, predicted))
+    return predictions
+
 def getArffData(filename):
     features,labels = [],[]
     data = False
@@ -35,12 +127,13 @@ def printUsage():
     print("  --distance   : distance metric (1=euclidean, 2=manhattan, 3=minkowski)")
     print("  --k          : number of nearest neighbors to select")
     print("  --p          : minkowski exponent (only used when --distance 3; default 3.0)")
+    print("  --output     : results file path (default: knn_results.txt)")
 
 if len(sys.argv) < 6:
     printUsage()
     sys.exit(1)
 
-arffPath, distFlag, kVal, pVal = sys.argv[1], None, None, 3.0
+arffPath, distFlag, kVal, pVal, outputPath = sys.argv[1], None, None, 3.0, 'knn_results.txt'
 i = 2
 while i < len(sys.argv):
     if sys.argv[i] == '--distance' and i + 1 < len(sys.argv):
@@ -54,6 +147,9 @@ while i < len(sys.argv):
     elif sys.argv[i] == '--p' and i + 1 < len(sys.argv):
         try: pVal = float(sys.argv[i + 1])
         except ValueError: pVal = 3.0
+        i += 2
+    elif sys.argv[i] == '--output' and i + 1 < len(sys.argv):
+        outputPath = sys.argv[i + 1]
         i += 2
     else:
         print(f"error, unknown or incomplete argument: {sys.argv[i]}")
@@ -73,30 +169,17 @@ distFunc = (
     else lambda a, b: minkowskiDistance(a, b, pVal)
 )
 
-print(f"arff file: {arffPath}")
-print(f"distance metric: {distName} ({distFlag})")
-print(f"k (nearest neighbors): {kVal}")
-print(f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})")
-
 features,labels = getArffData(arffPath)
 
-testPoint = [2.1, 3.2, 4.3, 5.4]
-
-matrix = {actual: {pred: 0 for pred in labels} for actual in labels} # unfinished
-
 startTime = time.time()
-
-allDistances = getAllDistances(testPoint, features, distFunc)
-kNearest = getKNearest(allDistances, kVal)
-
-print(f"\ntest point: {testPoint}")
-print(f"all distances ({len(allDistances)} points):")
-for dist, idx in sorted(allDistances, key=lambda d: d[0]):
-    print(f"  idx {idx}: distance={dist:.4f}, label={labels[idx]}, features={features[idx]}")
-
-print(f"\nclosest {kVal} neighbor(s):")
-for dist, idx in kNearest:
-    print(f"  idx {idx}: distance={dist:.4f}, label={labels[idx]}, features={features[idx]}")
-
+predictions = runLeaveOneOut(features, labels, kVal, distFunc)
 endTime = time.time()
-print(f"\noperation time: {endTime - startTime:.6f} seconds")
+
+classes = getUniqueClasses(labels)
+confusionMatrix = buildConfusionMatrix(predictions, classes)
+elapsed = endTime - startTime
+resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
+writeResultsFile(outputPath, resultsReport)
+
+print(resultsReport)
+print(f"\nresults written to: {outputPath}")
