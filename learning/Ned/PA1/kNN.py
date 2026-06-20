@@ -50,6 +50,9 @@ def formatConfusionMatrix(matrix, classes):
     return '\n'.join(lines)
 
 def buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix, classes):
+    total = sum(matrix[a][p] for a in classes for p in classes)
+    correct = sum(matrix[c][c] for c in classes)
+    accuracy = correct / total if total else 0.0
     pLine = f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})"
     return '\n'.join([
         f"arff file: {arffPath}",
@@ -62,30 +65,8 @@ def buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix
         formatConfusionMatrix(matrix, classes),
         "",
         "compiled metrics:",
-        formatMetrics(matrix, classes),
+        f"accuracy: {correct}/{total} ({accuracy:.4f})",
     ])
-
-def formatMetrics(matrix, classes):
-    def div(n, d): return n / d if d else 0.0
-
-    total = sum(matrix[a][p] for a in classes for p in classes)
-    correct = sum(matrix[c][c] for c in classes)
-    lines = [f"accuracy: {correct}/{total} ({div(correct, total):.4f})", "per-class metrics:"]
-    precisions, recalls, f1s = [], [], []
-    for c in classes:
-        tp = matrix[c][c]
-        fp = sum(matrix[a][c] for a in classes) - tp
-        fn = sum(matrix[c][p] for p in classes) - tp
-        p, r = div(tp, tp + fp), div(tp, tp + fn)
-        f = div(2 * p * r, p + r)
-        precisions.append(p); recalls.append(r); f1s.append(f)
-        lines.append(f"  {c}: precision={p:.4f}, recall={r:.4f}, f1={f:.4f}")
-    n = len(classes) or 1
-    lines.append(
-        f"macro avg: precision={sum(precisions) / n:.4f}, "
-        f"recall={sum(recalls) / n:.4f}, f1={sum(f1s) / n:.4f}"
-    )
-    return '\n'.join(lines)
 
 def runLeaveOneOut(features, labels, k, distFunc):
     predictions = []
@@ -124,58 +105,68 @@ def printUsage():
     print("  --p          : minkowski exponent (only used when --distance 3; default 3.0)")
     print("  --output     : results file path (default: knn_results.txt)")
 
-if len(sys.argv) < 6:
-    printUsage()
-    sys.exit(1)
-
-arffPath, distFlag, kVal, pVal, outputPath = sys.argv[1], None, None, 3.0, 'knn_results.txt'
-i = 2
-while i < len(sys.argv):
-    if sys.argv[i] == '--distance' and i + 1 < len(sys.argv):
-        try: distFlag = int(sys.argv[i + 1])
-        except ValueError: distFlag = None
-        i += 2
-    elif sys.argv[i] == '--k' and i + 1 < len(sys.argv):
-        try: kVal = int(sys.argv[i + 1])
-        except ValueError: kVal = None
-        i += 2
-    elif sys.argv[i] == '--p' and i + 1 < len(sys.argv):
-        try: pVal = float(sys.argv[i + 1])
-        except ValueError: pVal = 3.0
-        i += 2
-    elif sys.argv[i] == '--output' and i + 1 < len(sys.argv):
-        outputPath = sys.argv[i + 1]
-        i += 2
-    else:
-        print(f"error, unknown or incomplete argument: {sys.argv[i]}")
+def parseArgs(argv):
+    if len(argv) < 6:
         printUsage()
         sys.exit(1)
 
-if distFlag not in [1, 2, 3] or kVal is None:
-    print("missing or invalid --distance (1|2|3) and/or --k <int>")
-    printUsage()
-    sys.exit(1)
+    arffPath, distFlag, kVal, pVal, outputPath = argv[1], None, None, 3.0, 'knn_results.txt'
+    i = 2
+    while i < len(argv):
+        if argv[i] == '--distance' and i + 1 < len(argv):
+            try: distFlag = int(argv[i + 1])
+            except ValueError: distFlag = None
+            i += 2
+        elif argv[i] == '--k' and i + 1 < len(argv):
+            try: kVal = int(argv[i + 1])
+            except ValueError: kVal = None
+            i += 2
+        elif argv[i] == '--p' and i + 1 < len(argv):
+            try: pVal = float(argv[i + 1])
+            except ValueError: pVal = 3.0
+            i += 2
+        elif argv[i] == '--output' and i + 1 < len(argv):
+            outputPath = argv[i + 1]
+            i += 2
+        else:
+            print(f"error, unknown or incomplete argument: {argv[i]}")
+            printUsage()
+            sys.exit(1)
 
-distName = 'euclidean' if distFlag == 1 else 'manhattan' if distFlag == 2 else 'minkowski'
-pVal = 2.0 if distFlag == 1 else 1.0 if distFlag == 2 else pVal
-distFunc = (
-    euclideanDistance if distFlag == 1
-    else manhattanDistance if distFlag == 2
-    else lambda a, b: minkowskiDistance(a, b, pVal)
-)
+    if distFlag not in [1, 2, 3] or kVal is None:
+        print("missing or invalid --distance (1|2|3) and/or --k <int>")
+        printUsage()
+        sys.exit(1)
 
-features,labels = getArffData(arffPath)
+    return arffPath, distFlag, kVal, pVal, outputPath
 
-startTime = time.time()
-predictions = runLeaveOneOut(features, labels, kVal, distFunc)
-endTime = time.time()
+def getDistFunc(distFlag, pVal):
+    distName = 'euclidean' if distFlag == 1 else 'manhattan' if distFlag == 2 else 'minkowski'
+    pVal = 2.0 if distFlag == 1 else 1.0 if distFlag == 2 else pVal
+    distFunc = (
+        euclideanDistance if distFlag == 1
+        else manhattanDistance if distFlag == 2
+        else lambda a, b: minkowskiDistance(a, b, pVal)
+    )
+    return distName, pVal, distFunc
 
-classes = getUniqueClasses(labels)
-confusionMatrix = buildConfusionMatrix(predictions, classes)
-elapsed = endTime - startTime
-resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
+if __name__ == '__main__':
+    arffPath, distFlag, kVal, pVal, outputPath = parseArgs(sys.argv)
+    distName, pVal, distFunc = getDistFunc(distFlag, pVal)
 
-with open(outputPath, 'w') as file: file.write(resultsReport + '\n')
+    features, labels = getArffData(arffPath)
 
-print(resultsReport)
-print(f"\nresults written to: {outputPath}")
+    startTime = time.time()
+    predictions = runLeaveOneOut(features, labels, kVal, distFunc)
+    endTime = time.time()
+
+    classes = getUniqueClasses(labels)
+    confusionMatrix = buildConfusionMatrix(predictions, classes)
+    elapsed = endTime - startTime
+    resultsReport = buildResultsReport(arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes)
+
+    with open(outputPath, 'w') as file:
+        file.write(resultsReport + '\n')
+
+    print(resultsReport)
+    print(f"\nresults written to: {outputPath}")
