@@ -4,6 +4,16 @@ import os
 import sys
 import time
 
+def getPeakMemoryMb():
+    try:
+        import resource
+        peakKb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peakKb / 1024
+    except ImportError:
+        import tracemalloc
+        currentBytes, peakBytes = tracemalloc.get_traced_memory()
+        return peakBytes / (1024 * 1024)
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'PA1'))
 from kNN import (
     buildConfusionMatrix,
@@ -38,7 +48,7 @@ def formatMetrics(matrix, classes):
     )
     return '\n'.join(lines)
 
-def buildDetailedReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matrix, classes):
+def buildDetailedReport(arffPath, distName, distFlag, kVal, pVal, elapsed, peakMemoryMb, matrix, classes):
     pLine = f"p (minkowski exponent): {pVal}" if distFlag == 3 else f"p (minkowski exponent): n/a (not used for {distName})"
     return '\n'.join([
         f"arff file: {arffPath}",
@@ -46,6 +56,7 @@ def buildDetailedReport(arffPath, distName, distFlag, kVal, pVal, elapsed, matri
         f"k (nearest neighbors): {kVal}",
         pLine,
         f"operation time: {elapsed:.6f} seconds",
+        f"peak memory: {peakMemoryMb:.2f} MB",
         "",
         "confusion matrix (rows=actual, columns=predicted):",
         formatConfusionMatrix(matrix, classes),
@@ -66,15 +77,22 @@ if __name__ == '__main__':
     distName, pVal, distFunc = getDistFunc(distFlag, pVal)
     features, labels = getArffData(arffPath)
 
+    try:
+        import resource
+    except ImportError:
+        import tracemalloc
+        tracemalloc.start()
+
     startTime = time.time()
     predictions = runLeaveOneOut(features, labels, kVal, distFunc)
     endTime = time.time()
+    peakMemoryMb = getPeakMemoryMb()
 
     classes = getUniqueClasses(labels)
     confusionMatrix = buildConfusionMatrix(predictions, classes)
     elapsed = endTime - startTime
     resultsReport = buildDetailedReport(
-        arffPath, distName, distFlag, kVal, pVal, elapsed, confusionMatrix, classes
+        arffPath, distName, distFlag, kVal, pVal, elapsed, peakMemoryMb, confusionMatrix, classes
     )
 
     with open(outputPath, 'w') as file:
