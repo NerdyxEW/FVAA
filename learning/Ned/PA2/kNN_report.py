@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#    "matplotlib",
+# ]
+# ///
+
 # python3 kNN_report.py ../../resources/data/small.arff --distance 1 --k 3
 # python3 kNN_report.py ../../resources/data/medium.arff --distance 3 --k 3 --p 4
 import os
