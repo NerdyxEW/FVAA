@@ -1,0 +1,26 @@
+1. what is a heterogeneous compute architecture?
+- system that mixes different types of processors (cpu, gpu, fpga, etc) working together instead of one uniform chip
+- each processor handles the work its best at, like cpu for control logic and gpu for parallel math
+- workloads get split across the different units so the whole system runs faster and more efficient
+
+2. how do cpus and gpus differ in terms of design and use cases?
+- cpu has fewer powerful cores built for sequential tasks, branching, and general purpose stuff
+- gpu has thousands of smaller cores built to run the same operation on lots of data at once
+- cpu good for os, databases, single-thread logic; gpu good for graphics, video, scientific sims, ml
+- they usually work as a pair — cpu manages the program flow, gpu crunches the heavy parallel parts
+
+3. why are gpus particularly effective for machine learning tasks?
+- ml is mostly big matrix/vector math that maps well to simd-style parallel execution
+- gpus can process huge batches of data simultaneously instead of one element at a time like a cpu
+- frameworks like pytorch/tensorflow use cuda to offload training and inference onto the gpu automatically
+- specialized tensor cores on newer gpus speed up the exact operations neural nets need most
+
+4. what challenges arise when developing software that utilises both cpus and gpus?
+- data has to move between cpu ram and gpu vram which is slow and can bottleneck performance if done too much
+- figuring out what work goes on cpu vs gpu is tricky — wrong placement wastes one of the processors
+- debugging and profiling across both is harder; tools like diogenes exist to find bad memory transfers and sync
+
+5. how might a knn algorithm be adapted to take advantage of gpu acceleration?
+- compute all query-to-reference distances in parallel as a big distance matrix on the gpu
+- can reformulate euclidean distance using matrix ops and run it through cublas for speed
+- after distances are computed, pick top-k neighbours per query in parallel using sort/heap on gpu

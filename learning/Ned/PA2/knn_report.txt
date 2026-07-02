@@ -2,7 +2,7 @@ arff file: ../../resources/data/small.arff
 distance metric: euclidean (1)
 k (nearest neighbors): 3
 p (minkowski exponent): n/a (not used for euclidean)
-operation time: 0.560286 seconds
+operation time: 0.629879 seconds
 peak memory: 0.09 MB
 
 confusion matrix (rows=actual, columns=predicted):
