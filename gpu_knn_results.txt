@@ -1,0 +1,9 @@
+arff file: learning/resources/data/small.arff
+k: 3
+gpu enabled: False
+operation time: 0.070374 seconds
+
+predictions (wip):
+[('0', None), ('0', None), ('0', None), ('0', None), ('0', None)]...
+
+<!-- todo: confusion matrix, cpu comparison, cupy setup -->
