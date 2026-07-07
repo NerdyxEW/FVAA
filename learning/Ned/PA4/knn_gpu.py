@@ -60,43 +60,37 @@ def moveFromGpu(gpuArr):
         return gpuArr
     return cp.asnumpy(gpuArr)
 
-def computeGpuDistances(testPoint, trainFeatures):
-    if gpuReady and useGpu:
-        testArr = cp.array(testPoint)
-        trainArr = moveToGpu(trainFeatures)
-        dists = cp.sqrt(cp.sum((trainArr - testArr) ** 2, axis=1))
-        distList = moveFromGpu(dists)
-        return [(float(distList[i]), i) for i in range(len(distList))]
-
-    return [(euclideanDistance(testPoint, f), i) for i, f in enumerate(trainFeatures)]
-
-def getNeighborVotes(kNearest, trainLabels):
-    votes = {}
-    for _, idx in kNearest:
-        label = trainLabels[idx]
-        votes[label] = votes.get(label, 0) + 1
-    return votes
+def computeGpuDistances(testIdx, gpuFeatures):
+    testArr = gpuFeatures[testIdx]
+    dists = cp.sqrt(cp.sum((gpuFeatures - testArr) ** 2, axis=1))
+    distList = moveFromGpu(dists)
+    pairs = []
+    trainIdx = 0
+    for j in range(len(distList)):
+        if j == testIdx:
+            continue
+        pairs.append((float(distList[j]), trainIdx))
+        trainIdx += 1
+    return pairs
 
 def pickTopK(distances, kVal, trainLabels):
-    if not isinstance(distances, list):
-        return trainLabels[0] if trainLabels else None
-
     effectiveK = min(kVal, len(distances))
-    kNearest = sorted(distances, key=lambda d: d[0])[:effectiveK]
-    votes = getNeighborVotes(kNearest, trainLabels)
-    if not votes:
-        return None
-    return max(votes, key=votes.get)
+    kNearest = getKNearest(distances, effectiveK)
+    predicted, _ = predictLabel(kNearest, trainLabels)
+    return predicted
 
 def runGpuLeaveOneOut(features, labels, kVal):
     predictions = []
+    gpuFeatures = moveToGpu(features) if gpuReady and useGpu else None
     for i in range(len(features)):
-        testPoint = features[i]
         actualLabel = labels[i]
-        trainFeats = [features[j] for j in range(len(features)) if j != i]
         trainLabs = [labels[j] for j in range(len(labels)) if j != i]
-
-        dists = computeGpuDistances(testPoint, trainFeats)
+        if gpuFeatures is not None:
+            dists = computeGpuDistances(i, gpuFeatures)
+        else:
+            testPoint = features[i]
+            trainFeats = [features[j] for j in range(len(features)) if j != i]
+            dists = [(euclideanDistance(testPoint, f), idx) for idx, f in enumerate(trainFeats)]
         predicted = pickTopK(dists, kVal, trainLabs)
         predictions.append((actualLabel, predicted))
     return predictions
@@ -124,7 +118,17 @@ def compareCpuGpu(cpuPreds, gpuPreds):
             matches += 1
     return matches, total
 
-def buildGpuReport(arffPath, kVal, classes, cpuTime, gpuTime, cpuPreds, gpuPreds):
+def verifyResults(cpuPreds, gpuPreds, cpuTime, gpuTime):
+    matchCount, total = compareCpuGpu(cpuPreds, gpuPreds)
+    if matchCount != total:
+        print(f"verification failed: {matchCount}/{total} predictions match cpu")
+        sys.exit(1)
+    if cpuTime <= 0 or gpuTime <= 0:
+        print("verification failed: invalid timing")
+        sys.exit(1)
+    return matchCount, total, cpuTime / gpuTime
+
+def buildGpuReport(arffPath, kVal, classes, cpuTime, gpuTime, cpuPreds, gpuPreds, speedup):
     gpuMatrix = buildConfusionMatrix(gpuPreds, classes)
     cpuMatrix = buildConfusionMatrix(cpuPreds, classes)
     matchCount, total = compareCpuGpu(cpuPreds, gpuPreds)
@@ -139,6 +143,8 @@ def buildGpuReport(arffPath, kVal, classes, cpuTime, gpuTime, cpuPreds, gpuPreds
         f'cpu operation time: {cpuTime:.6f} seconds',
         f'gpu operation time: {gpuTime:.6f} seconds',
         f'predictions matching cpu: {matchCount}/{total}',
+        f'verification: passed',
+        f'speedup (cpu time / gpu time): {speedup:.4f}x',
         '',
         'gpu confusion matrix (rows=actual, columns=predicted):',
         formatConfusionMatrix(gpuMatrix, classes),
@@ -169,7 +175,9 @@ if __name__ == '__main__':
     gpuPreds = runGpuLeaveOneOut(features, labels, kVal)
     gpuElapsed = time.time() - gpuStart
 
-    report = buildGpuReport(arffPath, kVal, classes, cpuElapsed, gpuElapsed, cpuPreds, gpuPreds)
+    matchCount, total, speedup = verifyResults(cpuPreds, gpuPreds, cpuElapsed, gpuElapsed)
+
+    report = buildGpuReport(arffPath, kVal, classes, cpuElapsed, gpuElapsed, cpuPreds, gpuPreds, speedup)
     writeResults(report, outPath)
     print(report)
     print(f'\nresults written to: {outPath}')
