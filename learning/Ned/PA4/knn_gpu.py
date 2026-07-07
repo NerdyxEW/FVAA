@@ -64,14 +64,11 @@ def computeGpuDistances(testPoint, trainFeatures):
     if gpuReady and useGpu:
         testArr = cp.array(testPoint)
         trainArr = moveToGpu(trainFeatures)
-        diff = trainArr - testArr
-        return cp.sqrt(cp.sum(diff ** 2))
+        dists = cp.sqrt(cp.sum((trainArr - testArr) ** 2, axis=1))
+        distList = moveFromGpu(dists)
+        return [(float(distList[i]), i) for i in range(len(distList))]
 
-    totalDist = 0
-    for f in trainFeatures:
-        for i in range(len(testPoint)):
-            totalDist += (f[i] - testPoint[i]) ** 2
-    return totalDist
+    return [(euclideanDistance(testPoint, f), i) for i, f in enumerate(trainFeatures)]
 
 def getNeighborVotes(kNearest, trainLabels):
     votes = {}
