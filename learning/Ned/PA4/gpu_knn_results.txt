@@ -1,0 +1,25 @@
+arff file: learning/resources/data/small.arff
+k: 3
+gpu enabled: False
+cpu operation time: 0.162310 seconds
+gpu operation time: 0.110221 seconds
+predictions matching cpu: 151/336
+
+gpu confusion matrix (rows=actual, columns=predicted):
+                    0       1       2       3       4       5       6       7
+0                 143       0       0       0       0       0       0       0
+1                  77       0       0       0       0       0       0       0
+2                   2       0       0       0       0       0       0       0
+3                   2       0       0       0       0       0       0       0
+4                  35       0       0       0       0       0       0       0
+5                  20       0       0       0       0       0       0       0
+6                   5       0       0       0       0       0       0       0
+7                  52       0       0       0       0       0       0       0
+
+compiled metrics (gpu):
+accuracy: 143/336 (0.4256)
+
+compiled metrics (cpu baseline):
+accuracy: 270/336 (0.8036)
+
+<!-- todo: cupy setup docs, matrix distance kernel, tie breaker -->
