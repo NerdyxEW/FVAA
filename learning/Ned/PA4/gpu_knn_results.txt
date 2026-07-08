@@ -1,11 +1,11 @@
 arff file: learning/resources/data/small.arff
 k: 3
 gpu enabled: False
-cpu operation time: 0.132355 seconds
-gpu operation time: 0.133323 seconds
+cpu operation time: 0.139233 seconds
+gpu operation time: 0.138398 seconds
 predictions matching cpu: 336/336
 verification: passed
-speedup (cpu time / gpu time): 0.9927x
+speedup (cpu time / gpu time): 1.0060x
 
 gpu confusion matrix (rows=actual, columns=predicted):
                     0       1       2       3       4       5       6       7
