@@ -1,5 +1,5 @@
-# python3 knn_gpu.py ../../resources/data/small.arff --k 3
-# python3 knn_gpu.py --benchmark --k 3
+# uv run knn_gpu.py ../../resources/data/small.arff --k 3
+# uv run knn_gpu.py --benchmark --k 3
 import os
 import sys
 import time
