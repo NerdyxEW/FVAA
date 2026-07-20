@@ -1,0 +1,21 @@
+1. when would you prefer batch processing over streaming, and vice versa?
+- batch when you have a fixed dataset and delay is fine — training on static files, data warehousing, offline analytics
+- batch is simpler to implement, easier to debug, and cheaper since you process everything at once on a schedule
+- streaming when data never stops and you need fast responses — stock trades, fraud detection, iot sensors, social media feeds
+- streaming fits when the model needs to update incrementally as new data comes in instead of retraining from scratch
+
+2. what challenges arise when working with streaming data?
+- data arrives continuously so you cant store it all — need windowing, reservoir sampling, or other tricks to keep bounded memory
+- concept drift: the data distribution changes over time so old patterns stop working and the model has to adapt
+- harder to build and maintain than batch — real-time latency, backpressure, and keeping input/output rates balanced
+
+3. how can poor sampling introduce bias into a model?
+- convenience sampling only grabs easy/recent data so the sample doesnt match the real population
+- random sampling on imbalanced data can skip rare classes entirely (like almost no spam emails in the sample)
+- too small a sample misses important subgroups and leads to wrong conclusions about the whole dataset
+- non-representative samples make the model learn patterns that dont generalize to real world data
+
+4. how might sampling strategies impact the performance of kNN?
+- random sampling can leave out rare classes so knn has no nearby examples to vote from for those labels
+- stratified sampling keeps class proportions balanced so each class has enough neighbours in the training set
+- undersampling majority classes speeds knn up but can lose useful neighbour info; oversampling minority classes helps but adds duplicates
