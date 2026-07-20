@@ -1,0 +1,26 @@
+arff file: ../../resources/data/small.arff
+k: 3
+gpu enabled: False
+cpu operation time: 0.132522 seconds
+gpu operation time: 0.131225 seconds
+predictions matching cpu: 336/336
+verification: passed
+speedup (cpu time / gpu time): 1.0099x
+
+gpu confusion matrix (rows=actual, columns=predicted):
+                    0       1       2       3       4       5       6       7
+0                 137       0       0       0       0       0       0       6
+1                   5      57       0       0      14       0       0       1
+2                   0       0       0       0       1       0       0       1
+3                   0       1       0       0       0       0       1       0
+4                   1      13       1       0      19       0       0       1
+5                   1       1       0       0       0      14       0       4
+6                   0       0       0       0       0       0       5       0
+7                   7       2       1       0       2       2       0      38
+
+compiled metrics (gpu):
+accuracy: 270/336 (0.8036)
+
+compiled metrics (cpu baseline):
+accuracy: 270/336 (0.8036)
+

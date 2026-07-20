@@ -1,0 +1,12 @@
+[project]
+name = "fvaa"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+pa2 = ["matplotlib>=3.8"]
+pa4-gpu = ["cupy-cuda12x>=13.0"]
+
+[tool.uv]
+package = false

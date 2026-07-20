@@ -1,5 +1,5 @@
-# python3 kNN.py ../../resources/data/small.arff --distance 1 --k 3
-# python3 kNN.py ../../resources/data/small.arff --distance 3 --k 3 --p 4
+# uv run kNN.py ../../resources/data/small.arff --distance 1 --k 3
+# uv run kNN.py ../../resources/data/small.arff --distance 3 --k 3 --p 4
 import math
 import sys
 import time
