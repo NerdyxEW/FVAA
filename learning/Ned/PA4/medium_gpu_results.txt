@@ -1,0 +1,25 @@
+arff file: learning/resources/data/medium.arff
+k: 3
+gpu enabled: False
+cpu operation time: 63.728267 seconds
+gpu operation time: 50.180068 seconds
+predictions matching cpu: 4898/4898
+verification: passed
+speedup (cpu time / gpu time): 1.2700x
+
+gpu confusion matrix (rows=actual, columns=predicted):
+                    3       4       5       6       7       8       9
+3                   2       4       7       6       1       0       0
+4                   3      24      57      59      19       1       0
+5                   4      29     774     523     113      13       1
+6                   1      30     455    1378     281      52       1
+7                   2       6     101     331     419      21       0
+8                   0       0      14      72      34      55       0
+9                   0       0       0       4       1       0       0
+
+compiled metrics (gpu):
+accuracy: 2652/4898 (0.5414)
+
+compiled metrics (cpu baseline):
+accuracy: 2652/4898 (0.5414)
+
