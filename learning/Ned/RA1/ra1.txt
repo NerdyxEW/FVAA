@@ -1,0 +1,19 @@
+1. how does classification differ from regression?
+- classification predicts a discrete label, regression predicts a continuous value
+- different loss functions, different evaluation metrics
+- examples: "is this spam?" vs "what will the price be?"
+
+2. what distinguishes multi-class from multi-label problems?
+- multi-class: one label per sample, mutually exclusive
+- multi-label: multiple labels per sample simultaneously
+- multi-label applies a threshold per label independently rather than picking the highest
+
+3. how do evaluation metrics change depending on classification type?
+- binary: precision, recall, f1, roc-auc apply cleanly
+- multi-class: same metrics but averaged across classes (macro/weighted)
+- multi-label: needs hamming loss or per-label f1; standard metrics break down because partial correctness matters
+
+4. what challenges arise as the number of classes or labels increases?
+- more classes: imbalance, less data per class, more complex boundaries, ties in voting
+- more labels: exponential label combinations, hard to evaluate partial matches, harder to train
+- for knn: more ties, need per-label voting for multi-label, curse of dimensionality worsens

@@ -1,0 +1,12 @@
+1. how might you combine predictions from multiple knn models?
+- majority vote across models with different k values, distance metrics, or feature subsets
+- bagging: train each model on a different bootstrap sample of the data
+
+2. what benefits could this provide over a single knn?
+- reduces sensitivity to choice of k and noisy neighbours
+- more stable, less variance in predictions overall
+
+3. what challenges or trade-offs might arise?
+- knn is already slow; multiple models multiplies the cost significantly
+- harder to interpret than a single knn
+- diversity is harder to achieve with knn than tree-based models
